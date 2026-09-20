@@ -457,6 +457,49 @@ for col, (label, value, badge, color) in zip(st.columns(4), snapshot):
             ),
             unsafe_allow_html=True,
         )
+# =========================================================
+# SMART INPUT VALIDATION
+# =========================================================
+def validate_inputs(v):
+    warnings = []
+
+    if v["fasting_blood_sugar"] >= 126:
+        warnings.append(
+            "🩸 Fasting blood sugar is in the diabetes range. "
+            "A healthcare professional should confirm this with appropriate testing."
+        )
+    elif v["fasting_blood_sugar"] >= 100:
+        warnings.append(
+            "🩸 Fasting blood sugar is in the prediabetes range."
+        )
+
+    if v["hba1c_level"] >= 6.5:
+        warnings.append(
+            "🧪 HbA1c is in the diabetes range. "
+            "Please discuss the result with a healthcare professional."
+        )
+    elif v["hba1c_level"] >= 5.7:
+        warnings.append(
+            "🧪 HbA1c is in the prediabetes range."
+        )
+
+    if v["blood_pressure_systolic"] >= 140 or v["blood_pressure_diastolic"] >= 90:
+        warnings.append(
+            "💓 Blood pressure is high based on the entered reading."
+        )
+
+    if v["bmi"] < 18.5:
+        warnings.append("⚖️ BMI is below the commonly used adult healthy range.")
+    elif v["bmi"] >= 30:
+        warnings.append("⚖️ BMI is in the obesity range.")
+
+    if v["hours_sleep_per_night"] < 6:
+        warnings.append("😴 You entered less than 6 hours of sleep.")
+
+    if v["stress_level"] >= 8:
+        warnings.append("🧘 Your entered stress level is high.")
+
+    return warnings
 
 # =========================================================
 # ANALYZE BUTTON
@@ -498,7 +541,14 @@ if st.button("🔍 ANALYZE DIABETES RISK"):
         "probs": [float(p) for p in probabilities],
         "inputs": dict(values),
     }
+validation_warnings = validate_inputs(values)
 
+if validation_warnings:
+    st.markdown("### ⚠️ Health Check")
+    for warning in validation_warnings:
+        st.warning(warning)
+else:
+    st.success("✅ No major warning flags detected from the entered values.")
 
 # =========================================================
 # TIPS
