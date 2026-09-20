@@ -1,10 +1,8 @@
 import inspect
-
 import joblib
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-
 # =========================================================
 # PAGE CONFIGURATION
 # =========================================================
@@ -29,8 +27,6 @@ def show_chart(fig, key):
         st.plotly_chart(fig, width="stretch", key=key)
     else:
         st.plotly_chart(fig, use_container_width=True, key=key)
-
-
 # =========================================================
 # LOAD MODEL FILES
 # =========================================================
@@ -135,11 +131,9 @@ THEMES = {
         "text": "#e2e8f0", "muted": "#94a3b8", "glow": "rgba(99,102,241,0.40)",
     },
 }
-
 # The theme picker lives in the sidebar (key="theme"); we read its value here
 theme_name = st.session_state.get("theme", next(iter(THEMES)))
 t = THEMES.get(theme_name, next(iter(THEMES.values())))
-
 VARS = f"""
 :root {{
     --bg1: {t['bg1']}; --bg2: {t['bg2']}; --bg3: {t['bg3']}; --bg4: {t['bg4']};
@@ -149,7 +143,6 @@ VARS = f"""
     --muted: {t['muted']}; --glow: {t['glow']};
 }}
 """
-
 # =========================================================
 # CSS
 # =========================================================
@@ -520,27 +513,58 @@ RISK_STYLE = {
         "note": "Keep up the healthy habits! Regular check-ups are still a good idea.",
     },
 }
+# =========================================================
+# ANALYZE BUTTON
+# =========================================================
 
-if st.button("🔍 ANALYZE DIABETES RISK"):
-    # Build one row in the exact training column order
-    row = {}
-    for f in FEATURES:
-        v = values[f]
-        if f in encoders:  # text column -> number
-            v = encoders[f].transform([v])[0]
-        row[f] = v
+if st.button("🔍 Analyze Diabetes Risk"):
 
-    input_scaled = scaler.transform(pd.DataFrame([row])[FEATURES])
+    input_data = pd.DataFrame([[
+        values["age"],
+        encoders["gender"].transform([values["gender"]])[0],
+        encoders["city"].transform([values["city"]])[0],
+        values["bmi"],
+        encoders["family_history_diabetes"].transform(
+            [values["family_history_diabetes"]
+        ])[0],
+        encoders["physical_activity_level"].transform(
+            [values["physical_activity_level"]
+        ])[0],
+        encoders["diet_type"].transform(
+            [values["diet_type"]
+        ])[0],
+        encoders["smoking_status"].transform(
+            [values["smoking_status"]
+        ])[0],
+        encoders["alcohol_consumption"].transform(
+            [values["alcohol_consumption"]
+        ])[0],
+        values["hours_sleep_per_night"],
+        values["stress_level"],
+        values["fasting_blood_sugar"],
+        values["hba1c_level"],
+        values["blood_pressure_systolic"],
+        values["blood_pressure_diastolic"],
+        values["waist_circumference_cm"],
+        encoders["income_bracket"].transform(
+            [values["income_bracket"]
+        ])[0],
+    ]], columns=FEATURES)
+
+    input_scaled = scaler.transform(input_data)
+
     prediction = model.predict(input_scaled)[0]
     probabilities = model.predict_proba(input_scaled)[0]
 
-    # Save so the result stays visible when the user switches tabs or edits inputs
     st.session_state["result"] = {
-        "prediction": str(prediction),
-        "classes": [str(c) for c in model.classes_],
-        "probs": [float(p) for p in probabilities],
-        "inputs": dict(values),
+        "prediction": prediction,
+        "probs": probabilities,
+        "classes": model.classes_,
+        "inputs": values.copy(),
     }
+
+    st.rerun()
+#
 validation_warnings = validate_inputs(values)
 
 if validation_warnings:
